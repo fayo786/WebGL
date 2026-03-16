@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WebGL Lab</title>
+</head>
+<body>
+
+<h3>Rendering Modes</h3>
+
+<button onclick="changeMode(0)">TRIANGLES</button>
+<button onclick="changeMode(1)">TRIANGLE_STRIP</button>
+<button onclick="changeMode(2)">TRIANGLE_FAN</button>
+
+<br><br>
+
+<canvas id="glcanvas" width="500" height="500"></canvas>
+
+<script>
+  // Webgl workflow :
+  //shaders with gl.createShader(),
+  // compiling them,
+  // linking into a program,
+  // cleaning buffers with gl.clear(),
+  // binding data, and
+  // issuing draw calls like gl.drawArrays()
+  let gl;
+  let program;
+  let shapeObj;
+
+  // shaders
+  let vertexShaderText = `
+attribute vec3 aPos;
+attribute vec3 aCol;
+varying vec3 vCol;
+
+void main(){
+    gl_Position = vec4(aPos, 1.0);
+    vCol = aCol;
+}
+`;
+
+  let fragmentShaderText = `
+precision mediump float;
+varying vec3 vCol;
+
+void main(){
+    gl_FragColor = vec4(vCol,1.0);
+}
+`;
+
+  function createShader(type, source){
+    let shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+  }
+
+  // triangle vertices/shader?
+  class MyObject {
+
+    constructor(){
+
+      this.mode = 0;  // default = triangles
+
+      // x, y vertex from the assignment
+      this.vertices = new Float32Array([
+        // x,y,z    r,g,b
+        0.0,  0.5, 0.0,   1,1,0,
+        1.0,  0.5, 0.0,   0,1,0,
+        0.5,  1.0, 0.0,   0,1,1,
+        0.5,  0.0, 0.0,   1,1,0,
+        0.0, -1.0, 0.0,   1,1,1,
+        -0.5,  0.0, 0.0,   0,1,1
+      ]);
+
+      // creating the buffer
+      this.buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.STATIC_DRAW);
+    }
+
+    setMode(m){
+      this.mode = m;
+    }
+
+    render(){
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+      let pos = gl.getAttribLocation(program, "aPos");
+      gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 6*4, 0);
+      gl.enableVertexAttribArray(pos);
+
+      let col = gl.getAttribLocation(program, "aCol");
+      gl.vertexAttribPointer(col, 3, gl.FLOAT, false, 6*4, 3*4);
+      gl.enableVertexAttribArray(col);
+
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      if(this.mode == 0){//connecting vertex essentially does not chnage geometry still making sense of this
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+      else if(this.mode == 1){
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
+      }
+      else{
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 6);
+      }
+    }
+  }
+
+  // main
+  class Main {
+
+    constructor(){
+
+      let canvas = document.getElementById("glcanvas");
+      gl = canvas.getContext("webgl");
+
+      gl.clearColor(.2,.2,.2,1);
+      gl.enable(gl.DEPTH_TEST);
+
+      let vs = createShader(gl.VERTEX_SHADER, vertexShaderText);
+      let fs = createShader(gl.FRAGMENT_SHADER, fragmentShaderText);
+
+      program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+
+      shapeObj = new MyObject();
+      shapeObj.render();
+    }
+
+    changeModeValue(val){
+      shapeObj.setMode(val);
+      shapeObj.render();
+    }
+  }
+
+  //
+  let mainApp;
+
+  function changeMode(val){
+    mainApp.changeModeValue(val);
+  }
+
+  window.onload = function(){
+    mainApp = new Main();
+  };
+
+</script>
+
+</body>
+</html>
